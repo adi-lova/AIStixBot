@@ -1,4 +1,10 @@
 .env
-__pycache__/
+*.log
+__pycache__
 *.pyc
+venv/
+output.png
+*.png
+*.jpg
+*.jpeg
 .DS_Store
