@@ -3,6 +3,10 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from bot.handlers import start, generate_sticker, photo_to_sticker
 from bot.config import load_config
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 async def main():
     config = load_config(".env")
