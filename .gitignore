@@ -1,4 +1,5 @@
 .env
+<<<<<<< HEAD
 *.log
 __pycache__
 *.pyc
@@ -8,3 +9,8 @@ output.png
 *.jpg
 *.jpeg
 .DS_Store
+=======
+__pycache__/
+*.pyc
+.DS_Store
+>>>>>>> 3beb9793ca504bc5beadddd446f25a77f583d7e3
