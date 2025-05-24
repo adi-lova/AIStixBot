@@ -2,12 +2,9 @@ from aiogram import Router, types
 from PIL import Image
 from io import BytesIO
 import requests
-from bot.config import load_config
 
 router = Router()
 
-config = load_config(".env")
-colab_url = config.colab_url
 
 @router.message(lambda message: message.photo)
 async def handle_photo(message: types.Message):
@@ -16,19 +13,22 @@ async def handle_photo(message: types.Message):
     file_path = file.file_path
     await message.answer("Обрабатываю фото...")
 
-    # Загрузка изображения
+    # Скачиваем фото
     image_data = await message.bot.download_file(file_path)
     input_image = Image.open(BytesIO(image_data))
 
-    # Удаление фона через Colab
-    response = requests.post(f"{colab_url}/remove_bg", files={"image": image_data})
-    if response.status_code != 200:
-        raise RuntimeError(f"Ошибка удаления фона: {response.status_code}\n    Тело ответа: {response.text}")
-    
-    output_image_data = response.content
-    output_image = Image.open(BytesIO(output_image_data))
+    # Отправляем на удаление фона через Pollinations Colab
+    try:
+        response = requests.post(
+            "https://colab.pollinations.ai/remove_bg ",
+            files={"image": image_data}
+        )
+        response.raise_for_status()
+    except requests.RequestException as e:
+        raise RuntimeError(f"Ошибка при удалении фона: {e}")
 
-    # Сохранение результата
+    # Загружаем результат
+    output_image = Image.open(BytesIO(response.content))
     bio = BytesIO()
     output_image.save(bio, format="PNG")
     bio.seek(0)

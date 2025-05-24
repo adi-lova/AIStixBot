@@ -1,54 +1,40 @@
 import requests
-from PIL import Image
 from io import BytesIO
+from PIL import Image
+from typing import List
 
-def generate_sticker(prompt: str, style: str, background: str, quantity: int, colab_url: str) -> list[BytesIO]:
-    """
-    Генерация стикеров с использованием Colab API.
 
-    Аргументы:
-    prompt (str): Текстовый запрос для генерации изображения.
-    style (str): Стиль изображения.
-    background (str): Тип фона ("с фоном" или "без фона").
-    quantity (int): Количество стикеров для генерации.
-    colab_url (str): URL для Colab API.
-
-    Возвращает:
-    list[BytesIO]: Список сгенерированных изображений в формате BytesIO.
-    """
+def generate_sticker(prompt: str, style: str, background: str, quantity: int) -> List[BytesIO]:
     stickers = []
-    for i in range(quantity):
-        full_prompt = f"{style} {prompt}, centered"
-        if background == "с фоном":
-            full_prompt += ", white background"
-        
+
+    full_prompt = f"{style} {prompt}, centered".strip()
+    encoded_prompt = requests.utils.quote(full_prompt)
+    url = f"https://image.pollinations.ai/prompt/ {encoded_prompt}?width=512&height=512"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        raise RuntimeError(f"Ошибка при генерации изображения: {e}")
+
+    image = Image.open(BytesIO(response.content))
+
+    if background == "без фона":
         try:
-            response = requests.post(f"{colab_url}/generate", json={"prompt": full_prompt})
-            response.raise_for_status()  # Проверка на успешный статус-код
-        except requests.exceptions.RequestException as e:
-            print(f"Ошибка при запросе к Colab API: {e}")
-            print(f"Статус код: {e.response.status_code if e.response else 'Нет ответа'}")
-            print(f"Текст ответа: {e.response.text if e.response else 'Нет ответа'}")
-            raise RuntimeError(f"Ошибка Colab API (стикер #{i+1}): {e}")
-        
-        image_data = response.content
-        image = Image.open(BytesIO(image_data))
-        
-        if background == "без фона":
-            try:
-                response = requests.post(f"{colab_url}/remove_bg", files={"image": image_data})
-                response.raise_for_status()  # Проверка на успешный статус-код
-            except requests.exceptions.RequestException as e:
-                print(f"Ошибка при запросе к Colab API: {e}")
-                print(f"Статус код: {e.response.status_code if e.response else 'Нет ответа'}")
-                print(f"Текст ответа: {e.response.text if e.response else 'Нет ответа'}")
-                raise RuntimeError(f"Ошибка удаления фона (стикер #{i+1}): {e}")
-            image_data = response.content
-            image = Image.open(BytesIO(image_data))
-        
+            bg_remove_response = requests.post(
+                "https://colab.pollinations.ai/remove_bg ",
+                files={"image": BytesIO(response.content)}
+            )
+            bg_remove_response.raise_for_status()
+            image = Image.open(BytesIO(bg_remove_response.content))
+        except requests.RequestException as e:
+            raise RuntimeError(f"Ошибка удаления фона: {e}")
+
+    for _ in range(quantity):
         bio = BytesIO()
+        image.thumbnail((512, 512))  # уменьшаем размер для Telegram
         image.save(bio, format="PNG")
         bio.seek(0)
         stickers.append(bio)
-    
+
     return stickers
