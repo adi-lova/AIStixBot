@@ -1,10 +1,9 @@
 import asyncio
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from bot.handlers import start, generate_sticker, photo_to_sticker
+from bot.handlers import generate_sticker
 from bot.config import load_config
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -13,9 +12,7 @@ async def main():
     bot = Bot(token=config.bot_token)
     dp = Dispatcher(storage=MemoryStorage())
 
-    dp.include_router(start.router)
     dp.include_router(generate_sticker.router)
-    dp.include_router(photo_to_sticker.router)
 
     await dp.start_polling(bot)
 
